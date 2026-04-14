@@ -1,0 +1,25 @@
+# Output runs — never commit scan results
+output/runs/
+
+# Tenant configs — never commit real credentials
+config/tenants/*.json
+!config/tenants/sample-tenant.json
+
+# Certificates
+*.pfx
+*.p12
+*.cer
+*.key
+
+# PowerShell
+*.ps1xml
+*.psd1.user
+*.log
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
+
+# Test results
+tests/results/
