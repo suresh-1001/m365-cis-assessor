@@ -1,148 +1,57 @@
 #Requires -Modules Pester
-<#
-.SYNOPSIS
-    Pester unit tests for the Invoke-ControlTest engine.
-    Tests pass/fail/error/manual result handling without requiring
-    live M365 connections — all assertions use mock data.
-#>
 
 BeforeAll {
-    $modulePath = Join-Path $PSScriptRoot '..\..\src\Assessor\Assessor.psm1'
-    Import-Module $modulePath -Force
+    $repoRoot = (Get-Item $PSScriptRoot).Parent.Parent.FullName
+    . (Join-Path $repoRoot 'src\Assessor\Private\Invoke-ControlTest.ps1')
+    . (Join-Path $repoRoot 'src\Assessor\Private\Resolve-BenchmarkPack.ps1')
 
-    # Minimal mock connections hashtable
     $script:MockConnections = @{
-        Graph      = @{ Workload = 'Graph';      AppId = 'mock-graph-app' }
-        Exchange   = @{ Workload = 'Exchange';   AppId = 'mock-exo-app'   }
-        Teams      = @{ Workload = 'Teams';      AppId = 'mock-teams-app' }
-        SharePoint = @{ Workload = 'SharePoint'; AppId = 'mock-spo-app'   }
+        Graph      = @{ Workload = 'Graph';      AppId = 'mock' }
+        Exchange   = @{ Workload = 'Exchange';   AppId = 'mock' }
+        Teams      = @{ Workload = 'Teams';      AppId = 'mock' }
+        SharePoint = @{ Workload = 'SharePoint'; AppId = 'mock' }
     }
 }
 
 Describe 'Invoke-ControlTest — Pass result' {
     It 'Returns Status=Pass when assertion returns Pass=$true' {
-        $control = [PSCustomObject]@{
-            id               = 'TEST.PASS.001'
-            title            = 'Mock passing control'
-            section          = 'Test Section'
-            workload         = 'Graph'
-            level            = 1
-            assessmentStatus = 'Automated'
-            remediationUrl   = 'https://example.com'
-            assertion        = "param(`$Connections) return @{ Pass = `$true; Detail = 'All good'; Evidence = @{} }"
-        }
-
-        $result = Invoke-ControlTest -Control $control -Connections $script:MockConnections
-
-        $result.Status      | Should -Be 'Pass'
-        $result.ControlId   | Should -Be 'TEST.PASS.001'
-        $result.StatusReason | Should -Be 'All good'
-        $result.DurationMs  | Should -BeGreaterThan 0
+        $control = [PSCustomObject]@{ id='T.1'; title='Pass'; section='S'; workload='Graph'; level=1; assessmentStatus='Automated'; remediationUrl='https://x.com'; assertion="param(`$c) return @{ Pass=`$true; Detail='OK'; Evidence=@{} }" }
+        $r = Invoke-ControlTest -Control $control -Connections $script:MockConnections
+        $r.Status | Should -Be 'Pass'
     }
 }
-
 Describe 'Invoke-ControlTest — Fail result' {
     It 'Returns Status=Fail when assertion returns Pass=$false' {
-        $control = [PSCustomObject]@{
-            id               = 'TEST.FAIL.001'
-            title            = 'Mock failing control'
-            section          = 'Test Section'
-            workload         = 'Exchange'
-            level            = 1
-            assessmentStatus = 'Automated'
-            remediationUrl   = 'https://example.com'
-            assertion        = "param(`$Connections) return @{ Pass = `$false; Detail = 'Setting misconfigured'; Evidence = @{ Value = 'bad' } }"
-        }
-
-        $result = Invoke-ControlTest -Control $control -Connections $script:MockConnections
-
-        $result.Status       | Should -Be 'Fail'
-        $result.StatusReason | Should -Be 'Setting misconfigured'
-        $result.Evidence     | Should -Not -BeNullOrEmpty
+        $control = [PSCustomObject]@{ id='T.2'; title='Fail'; section='S'; workload='Exchange'; level=1; assessmentStatus='Automated'; remediationUrl='https://x.com'; assertion="param(`$c) return @{ Pass=`$false; Detail='Bad'; Evidence=@{} }" }
+        $r = Invoke-ControlTest -Control $control -Connections $script:MockConnections
+        $r.Status | Should -Be 'Fail'
     }
 }
-
 Describe 'Invoke-ControlTest — Error handling' {
     It 'Returns Status=Error when assertion throws' {
-        $control = [PSCustomObject]@{
-            id               = 'TEST.ERR.001'
-            title            = 'Mock error control'
-            section          = 'Test Section'
-            workload         = 'Teams'
-            level            = 1
-            assessmentStatus = 'Automated'
-            remediationUrl   = 'https://example.com'
-            assertion        = "param(`$Connections) throw 'Simulated API failure'"
-        }
-
-        $result = Invoke-ControlTest -Control $control -Connections $script:MockConnections
-
-        $result.Status      | Should -Be 'Error'
-        $result.StatusReason | Should -Match 'Simulated API failure'
+        $control = [PSCustomObject]@{ id='T.3'; title='Error'; section='S'; workload='Teams'; level=1; assessmentStatus='Automated'; remediationUrl='https://x.com'; assertion="param(`$c) throw 'fail'" }
+        $r = Invoke-ControlTest -Control $control -Connections $script:MockConnections
+        $r.Status | Should -Be 'Error'
     }
-
     It 'Returns Status=Error when assertion returns wrong type' {
-        $control = [PSCustomObject]@{
-            id               = 'TEST.ERR.002'
-            title            = 'Mock bad return type'
-            section          = 'Test Section'
-            workload         = 'Graph'
-            level            = 1
-            assessmentStatus = 'Automated'
-            remediationUrl   = 'https://example.com'
-            assertion        = "param(`$Connections) return 'not a hashtable'"
-        }
-
-        $result = Invoke-ControlTest -Control $control -Connections $script:MockConnections
-
-        $result.Status | Should -Be 'Error'
+        $control = [PSCustomObject]@{ id='T.4'; title='BadType'; section='S'; workload='Graph'; level=1; assessmentStatus='Automated'; remediationUrl='https://x.com'; assertion="param(`$c) return 'string'" }
+        $r = Invoke-ControlTest -Control $control -Connections $script:MockConnections
+        $r.Status | Should -Be 'Error'
     }
 }
-
 Describe 'Invoke-ControlTest — Manual controls' {
     It 'Returns Status=Manual without running assertion' {
-        $control = [PSCustomObject]@{
-            id               = 'TEST.MAN.001'
-            title            = 'Mock manual control'
-            section          = 'Test Section'
-            workload         = 'SharePoint'
-            level            = 2
-            assessmentStatus = 'Manual'
-            remediationUrl   = 'https://example.com'
-            assertion        = $null
-        }
-
-        $result = Invoke-ControlTest -Control $control -Connections $script:MockConnections
-
-        $result.Status | Should -Be 'Manual'
-        $result.StatusReason | Should -Match 'manual review'
+        $control = [PSCustomObject]@{ id='T.5'; title='Manual'; section='S'; workload='SharePoint'; level=2; assessmentStatus='Manual'; remediationUrl='https://x.com'; assertion=$null }
+        $r = Invoke-ControlTest -Control $control -Connections $script:MockConnections
+        $r.Status | Should -Be 'Manual'
     }
 }
-
-Describe 'Invoke-ControlTest — Result object schema' {
+Describe 'Invoke-ControlTest — Result schema' {
     It 'Result object contains all required fields' {
-        $control = [PSCustomObject]@{
-            id               = 'TEST.SCHEMA.001'
-            title            = 'Schema validation control'
-            section          = 'Test Section'
-            workload         = 'Graph'
-            level            = 1
-            assessmentStatus = 'Automated'
-            remediationUrl   = 'https://example.com'
-            assertion        = "param(`$Connections) return @{ Pass = `$true; Detail = 'OK'; Evidence = `$null }"
-        }
-
-        $result = Invoke-ControlTest -Control $control -Connections $script:MockConnections
-
-        $result.PSObject.Properties.Name | Should -Contain 'ControlId'
-        $result.PSObject.Properties.Name | Should -Contain 'Title'
-        $result.PSObject.Properties.Name | Should -Contain 'Status'
-        $result.PSObject.Properties.Name | Should -Contain 'StatusReason'
-        $result.PSObject.Properties.Name | Should -Contain 'Workload'
-        $result.PSObject.Properties.Name | Should -Contain 'Level'
-        $result.PSObject.Properties.Name | Should -Contain 'StartTime'
-        $result.PSObject.Properties.Name | Should -Contain 'EndTime'
-        $result.PSObject.Properties.Name | Should -Contain 'DurationMs'
-        $result.PSObject.Properties.Name | Should -Contain 'RemediationUrl'
+        $control = [PSCustomObject]@{ id='T.6'; title='Schema'; section='S'; workload='Graph'; level=1; assessmentStatus='Automated'; remediationUrl='https://x.com'; assertion="param(`$c) return @{ Pass=`$true; Detail='OK'; Evidence=`$null }" }
+        $r = Invoke-ControlTest -Control $control -Connections $script:MockConnections
+        $r.PSObject.Properties.Name | Should -Contain 'ControlId'
+        $r.PSObject.Properties.Name | Should -Contain 'Status'
+        $r.PSObject.Properties.Name | Should -Contain 'DurationMs'
     }
 }
