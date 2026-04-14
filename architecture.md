@@ -1,0 +1,42 @@
+[
+  {
+    "id": "CIS.M365.2.1.1",
+    "title": "Ensure that DKIM is enabled for all Exchange Online Accepted Domains",
+    "section": "2.1 — Exchange Online",
+    "level": 1,
+    "assessmentStatus": "Automated",
+    "description": "DKIM signing ensures email sent from your domain can be cryptographically verified by receiving mail servers, reducing spoofing risk.",
+    "remediationUrl": "https://learn.microsoft.com/en-us/microsoft-365/security/office-365-security/use-dkim-to-validate-outbound-email",
+    "assertion": "\nparam($Connections)\n$configs = Get-DkimSigningConfig\n$disabled = $configs | Where-Object { $_.Enabled -eq $false }\nif ($disabled.Count -gt 0) {\nreturn @{ Pass = $false; Detail = \"DKIM disabled on $($disabled.Count) domain(s): $($disabled.Domain -join ', ')\"; Evidence = ($configs | Select-Object Domain, Enabled, Status) }\n}\nreturn @{ Pass = $true; Detail = 'DKIM is enabled on all accepted domains.'; Evidence = ($configs | Select-Object Domain, Enabled, Status) }\n"
+  },
+  {
+    "id": "CIS.M365.2.1.2",
+    "title": "Ensure that SPF records are published for all Exchange Online domains",
+    "section": "2.1 — Exchange Online",
+    "level": 1,
+    "assessmentStatus": "Automated",
+    "description": "SPF records define which mail servers are authorized to send email on behalf of your domain, reducing phishing and spoofing attacks.",
+    "remediationUrl": "https://learn.microsoft.com/en-us/microsoft-365/security/office-365-security/set-up-spf-to-help-prevent-spoofing",
+    "assertion": "\nparam($Connections)\n$domains = Get-AcceptedDomain | Where-Object { $_.DomainType -eq 'Authoritative' }\n$results = foreach ($d in $domains) {\n$dns = Resolve-DnsName -Name $d.DomainName -Type TXT -ErrorAction SilentlyContinue\n$spf = $dns | Where-Object { $_.Strings -like '*v=spf1*' }\n[PSCustomObject]@{ Domain = $d.DomainName; HasSPF = ($null -ne $spf); SPFRecord = ($spf.Strings -join ' ') }\n}\n$missing = $results | Where-Object { -not $_.HasSPF }\nif ($missing.Count -gt 0) {\nreturn @{ Pass = $false; Detail = \"SPF missing on $($missing.Count) domain(s): $($missing.Domain -join ', ')\"; Evidence = $results }\n}\nreturn @{ Pass = $true; Detail = 'SPF records found on all authoritative domains.'; Evidence = $results }\n"
+  },
+  {
+    "id": "CIS.M365.2.1.3",
+    "title": "Ensure DMARC Records exist with a policy of quarantine or reject",
+    "section": "2.1 — Exchange Online",
+    "level": 1,
+    "assessmentStatus": "Automated",
+    "description": "DMARC tells receiving mail servers what to do with mail that fails SPF or DKIM checks. A policy of 'quarantine' or 'reject' actively protects against spoofing.",
+    "remediationUrl": "https://learn.microsoft.com/en-us/microsoft-365/security/office-365-security/use-dmarc-to-validate-email",
+    "assertion": "\nparam($Connections)\n$domains = Get-AcceptedDomain | Where-Object { $_.DomainType -eq 'Authoritative' }\n$results = foreach ($d in $domains) {\n$dns = Resolve-DnsName -Name \"_dmarc.$($d.DomainName)\" -Type TXT -ErrorAction SilentlyContinue\n$dmarc = $dns | Where-Object { $_.Strings -like '*v=DMARC1*' }\n$policy = if ($dmarc) { if ($dmarc.Strings -match 'p=(quarantine|reject)') { $matches[1] } else { 'none' } } else { 'missing' }\n[PSCustomObject]@{ Domain = $d.DomainName; Policy = $policy; Record = ($dmarc.Strings -join ' ') }\n}\n$weak = $results | Where-Object { $_.Policy -notin @('quarantine','reject') }\nif ($weak.Count -gt 0) {\nreturn @{ Pass = $false; Detail = \"$($weak.Count) domain(s) missing DMARC or using 'none' policy: $($weak.Domain -join ', ')\"; Evidence = $results }\n}\nreturn @{ Pass = $true; Detail = 'All domains have DMARC with quarantine or reject policy.'; Evidence = $results }\n"
+  },
+  {
+    "id": "CIS.M365.2.1.4",
+    "title": "Ensure the Common Attachment Types Filter is enabled",
+    "section": "2.1 — Exchange Online",
+    "level": 1,
+    "assessmentStatus": "Automated",
+    "description": "The Common Attachment Types Filter in Defender for Office 365 blocks known malicious file types from being delivered via email.",
+    "remediationUrl": "https://learn.microsoft.com/en-us/microsoft-365/security/office-365-security/anti-malware-protection",
+    "assertion": "\nparam($Connections)\n$policy = Get-MalwareFilterPolicy -Identity Default\nif (-not $policy.EnableFileFilter) {\nreturn @{ Pass = $false; Detail = 'Common Attachment Types Filter is DISABLED on the Default malware policy.'; Evidence = ($policy | Select-Object Identity, EnableFileFilter, FileTypes) }\n}\nreturn @{ Pass = $true; Detail = 'Common Attachment Types Filter is enabled.'; Evidence = ($policy | Select-Object Identity, EnableFileFilter, FileTypes) }\n"
+  }
+]

@@ -1,203 +1,67 @@
-# M365 CIS Assessor 🛡️
+# Benchmark Support Matrix
 
-[![CI](https://github.com/suresh-1001/m365-cis-assessor/actions/workflows/ci.yml/badge.svg)](https://github.com/suresh-1001/m365-cis-assessor/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![PowerShell](https://img.shields.io/badge/PowerShell-7.2%2B-5391FE)
-![CIS](https://img.shields.io/badge/CIS-M365%20Foundations%206.0.1-orange)
-
-> Automated Microsoft 365 security assessment tool aligned to the **CIS Microsoft 365 Foundations Benchmark v6.0.1**.
-
-![M365 CIS Assessor Banner](diagrams/m365-cis-assessor-banner.webp)
-
-Built by [Linesight Digital](https://linesightdigital.com) — Microsoft 365 security consulting and automation for SMB and mid-market.
+CIS Microsoft 365 Foundations Benchmark v6.0.1 — control coverage status.
 
 ---
 
-## What It Does
+## Entra ID / Graph (Section 1)
 
-- Connects to your M365 tenant using **certificate-based app-only authentication** — no interactive login, no stored passwords
-- Evaluates tenant configuration against **CIS Microsoft 365 Foundations Benchmark v6.0.1** controls
-- Covers **Entra ID, Exchange Online, Teams, and SharePoint/OneDrive**
-- Produces an **HTML dashboard**, **JSON evidence package**, and **CSV control register** per scan run
-- Supports scheduled runs via **GitHub Actions** or **Azure Automation**
-
----
-
-## Architecture
-
-![Assessment Architecture](diagrams/assessment-architecture.webp)
-
-```
-Runner / Orchestrator
-    └── Auth / Connection Broker (cert-based app-only)
-            └── Provider Layer (Graph · Exchange · Teams · SharePoint)
-                    └── Control Catalog (JSON benchmark packs)
-                            └── Test Engine (assertion + evidence collection)
-                                    └── Output Pipeline → HTML · JSON · CSV
-```
-
-Full detail: [docs/architecture.md](docs/architecture.md)
-
----
-
-## Control Coverage
-
-| Workload | Controls | Automated | Manual Review |
+| Control ID | Title | Level | Status |
 |---|---|---|---|
-| Entra ID / Graph | 25 | 22 | 3 |
-| Exchange Online | 18 | 16 | 2 |
-| Teams | 12 | 10 | 2 |
-| SharePoint / OneDrive | 10 | 8 | 2 |
-| **Total** | **65** | **56** | **9** |
-
-Full list: [docs/benchmark-support-matrix.md](docs/benchmark-support-matrix.md)
-
----
-
-## Quick Start
-
-### Prerequisites
-
-- PowerShell 7.2+
-- An Entra app registration with certificate authentication ([setup guide](docs/deployment-runbook.md))
-- Required modules:
-
-```powershell
-.\build\install-modules.ps1
-```
-
-### Run an Assessment
-
-```powershell
-Import-Module .\src\Assessor\Assessor.psm1
-
-Invoke-M365Assessment `
-    -TenantConfigPath .\config\tenants\sample-tenant.json `
-    -Benchmark cis-m365-foundations-6.0.1 `
-    -OutputPath .\output `
-    -Workloads Graph,Exchange,Teams,SharePoint
-```
-
-### Validate Connections First
-
-```powershell
-Test-M365Connections `
-    -TenantConfigPath .\config\tenants\sample-tenant.json `
-    -Verbose
-```
+| CIS.M365.1.1.1 | Security Defaults disabled when CA in use | 1 | ✅ Automated |
+| CIS.M365.1.1.2 | Only approved public M365 Groups exist | 2 | ✅ Automated |
+| CIS.M365.1.1.3 | Password expiration set to Never | 1 | ✅ Automated |
+| CIS.M365.1.2.1 | MFA enabled for all privileged users | 1 | ✅ Automated |
+| CIS.M365.1.3.1 | Restrict access to Entra admin center | 1 | 📋 Manual |
+| CIS.M365.1.3.2 | Restrict non-admin users from creating tenants | 1 | ✅ Automated |
+| CIS.M365.1.3.3 | Guest user access restrictions | 2 | ✅ Automated |
+| CIS.M365.1.3.4 | User consent for apps restricted | 1 | ✅ Automated |
 
 ---
 
-## Tenant Configuration
+## Exchange Online (Section 2)
 
-Copy `config/tenants/sample-tenant.json` and fill in your app registration details:
-
-```json
-{
-  "TenantName": "Contoso Production",
-  "TenantId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
-  "DefaultDomain": "contoso.onmicrosoft.com",
-  "Graph": {
-    "ClientId": "11111111-2222-3333-4444-555555555555",
-    "CertificateThumbprint": "ABCDEF1234567890ABCDEF1234567890ABCDEF12"
-  },
-  "Exchange": {
-    "AppId": "11111111-2222-3333-4444-555555555555",
-    "CertificateThumbprint": "ABCDEF1234567890ABCDEF1234567890ABCDEF12",
-    "Organization": "contoso.onmicrosoft.com"
-  },
-  "Teams": {
-    "ApplicationId": "11111111-2222-3333-4444-555555555555",
-    "CertificateThumbprint": "ABCDEF1234567890ABCDEF1234567890ABCDEF12",
-    "TenantId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
-  },
-  "SharePoint": {
-    "AdminUrl": "https://contoso-admin.sharepoint.com",
-    "ClientId": "11111111-2222-3333-4444-555555555555",
-    "TenantId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
-    "CertificateThumbprint": "ABCDEF1234567890ABCDEF1234567890ABCDEF12"
-  }
-}
-```
-
-> `config/tenants/*.json` is git-ignored except for `sample-tenant.json`.
+| Control ID | Title | Level | Status |
+|---|---|---|---|
+| CIS.M365.2.1.1 | DKIM enabled for all accepted domains | 1 | ✅ Automated |
+| CIS.M365.2.1.2 | SPF records published for all domains | 1 | ✅ Automated |
+| CIS.M365.2.1.3 | DMARC policy of quarantine or reject | 1 | ✅ Automated |
+| CIS.M365.2.1.4 | Common Attachment Types Filter enabled | 1 | ✅ Automated |
+| CIS.M365.2.1.5 | Safe Links policy enabled | 2 | ✅ Automated |
+| CIS.M365.2.1.6 | Safe Attachments policy enabled | 2 | ✅ Automated |
+| CIS.M365.2.1.7 | Anti-phishing policy configured | 1 | ✅ Automated |
+| CIS.M365.2.1.8 | Outbound spam policy configured | 1 | ✅ Automated |
 
 ---
 
-## Output Structure
+## Microsoft Teams (Section 3)
 
-Each run produces a timestamped folder:
-
-```
-output/runs/2026-04-13T10-00-00Z_contoso-prod/
-├── manifest.json
-├── summary.json
-├── control-results.csv
-├── dashboard.html
-├── exceptions.csv
-├── evidence/
-│   ├── CIS.M365.1.1.1.json
-│   └── ...
-├── raw/
-└── logs/
-    └── run.log
-```
-
-![Dashboard Preview](diagrams/output-dashboard-preview.webp)
+| Control ID | Title | Level | Status |
+|---|---|---|---|
+| CIS.M365.3.1.1 | External access restricted | 1 | ✅ Automated |
+| CIS.M365.3.1.2 | Teams not enabled for anonymous join | 1 | ✅ Automated |
+| CIS.M365.3.1.3 | Only org users can present in meetings | 2 | ✅ Automated |
+| CIS.M365.3.1.4 | External participants cannot give/request control | 1 | ✅ Automated |
+| CIS.M365.3.2.1 | Unmanaged external users cannot initiate contact | 1 | 📋 Manual |
 
 ---
 
-## Required Permissions
+## SharePoint / OneDrive (Section 4)
 
-| Workload | Permission |
+| Control ID | Title | Level | Status |
+|---|---|---|---|
+| CIS.M365.4.1.1 | SharePoint sharing restricted to org users | 1 | ✅ Automated |
+| CIS.M365.4.1.2 | External sharing expiration set | 2 | ✅ Automated |
+| CIS.M365.4.1.3 | OneDrive sharing restricted | 1 | ✅ Automated |
+| CIS.M365.4.2.1 | Default link type set to specific people | 1 | ✅ Automated |
+| CIS.M365.4.2.2 | Guest access set to expire | 2 | 📋 Manual |
+
+---
+
+## Legend
+
+| Symbol | Meaning |
 |---|---|
-| Graph / Entra | `Policy.Read.All`, `Directory.Read.All`, `AuditLog.Read.All`, `IdentityRiskyUser.Read.All`, `SecurityEvents.Read.All` |
-| Exchange Online | `Exchange.ManageAsApp` + `Exchange Administrator` role |
-| Teams | `TeamworkAppSettings.Read.All`, `Team.ReadBasic.All` |
-| SharePoint | `Sites.FullControl.All` |
-
-Full matrix: [docs/permissions-matrix.md](docs/permissions-matrix.md)
-
----
-
-## CI/CD — Scheduled Scanning
-
-![GitHub Actions Pipeline](diagrams/github-actions-pipeline.webp)
-
-```yaml
-# Runs every Monday at 6 AM UTC
-on:
-  schedule:
-    - cron: '0 6 * * 1'
-```
-
-See [.github/workflows/scheduled-assessment.yml](.github/workflows/scheduled-assessment.yml)
-
----
-
-## Roadmap
-
-- [x] Repo scaffold and auth layer
-- [x] Test engine and result schema
-- [x] Entra ID / Graph provider + controls
-- [x] Exchange Online provider + controls
-- [ ] Teams provider + controls
-- [ ] SharePoint / PnP provider + controls
-- [ ] HTML dashboard v2 (trend view)
-- [ ] Pester unit tests
-- [ ] Multi-tenant packaging
-
----
-
-## License
-
-MIT — use freely, attribution appreciated.
-
----
-
-## About
-
-Built and maintained by **Suresh Chand** at [Linesight Digital](https://linesightdigital.com).
-M365 security consulting, Intune/Entra implementation, and compliance automation.
-
-📍 San Jose, CA &nbsp;|&nbsp; 📧 suresh@echand.com &nbsp;|&nbsp; 💼 [LinkedIn](https://linkedin.com/in/sureshchand01)
+| ✅ Automated | Control is fully automated — assertion runs and collects evidence |
+| 📋 Manual | Control requires human review — flagged in report with guidance |
+| 🔄 In Progress | Control is being developed |
