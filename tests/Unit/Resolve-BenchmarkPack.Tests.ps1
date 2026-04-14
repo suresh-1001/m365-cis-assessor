@@ -1,9 +1,8 @@
 #Requires -Modules Pester
 
 BeforeAll {
-    $repoRoot   = (Get-Item $PSScriptRoot).Parent.Parent.FullName
-    $modulePath = Join-Path $repoRoot 'src\Assessor\Assessor.psm1'
-    Import-Module $modulePath -Force
+    $repoRoot = (Get-Item $PSScriptRoot).Parent.Parent.FullName
+    . (Join-Path $repoRoot 'src\Assessor\Private\Resolve-BenchmarkPack.ps1')
 
     $script:CatalogPath = Join-Path $repoRoot 'catalog\benchmarks'
     $script:Benchmark   = 'cis-m365-foundations-6.0.1'
@@ -11,24 +10,24 @@ BeforeAll {
 
 Describe 'Resolve-BenchmarkPack — catalog loading' {
     It 'Loads controls from the Entra workload' {
-        $controls = Resolve-BenchmarkPack -CatalogPath $script:CatalogPath -Benchmark $script:Benchmark -Workloads @('Graph')
-        $controls | Should -Not -BeNullOrEmpty
-        $controls[0].workload | Should -Be 'Graph'
+        $c = Resolve-BenchmarkPack -CatalogPath $script:CatalogPath -Benchmark $script:Benchmark -Workloads @('Graph')
+        $c | Should -Not -BeNullOrEmpty
+        $c[0].workload | Should -Be 'Graph'
     }
     It 'Loads controls from the Exchange workload' {
-        $controls = Resolve-BenchmarkPack -CatalogPath $script:CatalogPath -Benchmark $script:Benchmark -Workloads @('Exchange')
-        $controls | Should -Not -BeNullOrEmpty
-        $controls[0].workload | Should -Be 'Exchange'
+        $c = Resolve-BenchmarkPack -CatalogPath $script:CatalogPath -Benchmark $script:Benchmark -Workloads @('Exchange')
+        $c | Should -Not -BeNullOrEmpty
+        $c[0].workload | Should -Be 'Exchange'
     }
     It 'Loads controls from the Teams workload' {
-        $controls = Resolve-BenchmarkPack -CatalogPath $script:CatalogPath -Benchmark $script:Benchmark -Workloads @('Teams')
-        $controls | Should -Not -BeNullOrEmpty
-        $controls[0].workload | Should -Be 'Teams'
+        $c = Resolve-BenchmarkPack -CatalogPath $script:CatalogPath -Benchmark $script:Benchmark -Workloads @('Teams')
+        $c | Should -Not -BeNullOrEmpty
+        $c[0].workload | Should -Be 'Teams'
     }
     It 'Loads controls from the SharePoint workload' {
-        $controls = Resolve-BenchmarkPack -CatalogPath $script:CatalogPath -Benchmark $script:Benchmark -Workloads @('SharePoint')
-        $controls | Should -Not -BeNullOrEmpty
-        $controls[0].workload | Should -Be 'SharePoint'
+        $c = Resolve-BenchmarkPack -CatalogPath $script:CatalogPath -Benchmark $script:Benchmark -Workloads @('SharePoint')
+        $c | Should -Not -BeNullOrEmpty
+        $c[0].workload | Should -Be 'SharePoint'
     }
     It 'All controls have required fields' {
         $controls = Resolve-BenchmarkPack -CatalogPath $script:CatalogPath -Benchmark $script:Benchmark
