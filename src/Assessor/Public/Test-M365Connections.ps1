@@ -16,7 +16,7 @@ function Test-M365Connections {
 
         [Parameter()]
         [ValidateSet('Graph', 'Exchange', 'Teams', 'SharePoint')]
-        [string[]]$Workloads = @('Graph', 'Exchange', 'Teams', 'SharePoint')
+        [string[]]$Workloads = @('Graph', 'Teams', 'Exchange', 'SharePoint')
     )
 
     $tenantConfig = Get-Content $TenantConfigPath -Raw | ConvertFrom-Json
