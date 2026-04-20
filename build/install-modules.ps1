@@ -22,8 +22,8 @@ $modules = @(
     @{ Name = 'Microsoft.Graph.Security';                 MinVersion = '2.0.0' },
     @{ Name = 'Microsoft.Graph.Teams';                    MinVersion = '2.0.0' },
     @{ Name = 'ExchangeOnlineManagement';                 MinVersion = '3.0.0' },
-    @{ Name = 'MicrosoftTeams';                           MinVersion = '5.0.0' },
-    @{ Name = 'PnP.PowerShell';                           MinVersion = '2.0.0' },
+    @{ Name = 'MicrosoftTeams';  MinVersion = '5.0.0'; MaximumVersion = '5.9.0' },
+    @{ Name = 'PnP.PowerShell';  MinVersion = '2.4.0'; MaximumVersion = '2.99.0' },
     @{ Name = 'Maester';                                  MinVersion = '0.0.1' },
     @{ Name = 'PSScriptAnalyzer';                         MinVersion = '1.21.0' }
 )
