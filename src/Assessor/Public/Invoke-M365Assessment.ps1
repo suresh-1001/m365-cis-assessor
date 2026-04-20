@@ -75,7 +75,7 @@ function Invoke-M365Assessment {
 
         # ── Resolve benchmark catalog ────────────────────────────────────────
         if (-not $CatalogPath) {
-            $moduleRoot  = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+            $moduleRoot  = Split-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) -Parent
             $CatalogPath = Join-Path $moduleRoot 'catalog\benchmarks'
         }
 
