@@ -8,7 +8,7 @@ on:
       workloads:
         description: 'Workloads to scan (comma-separated: Graph,Exchange,Teams,SharePoint)'
         required: false
-        default: 'Graph,Exchange,Teams,SharePoint'
+        default: 'Graph,Teams,Exchange,SharePoint'
       benchmark:
         description: 'Benchmark identifier'
         required: false
