@@ -18,7 +18,7 @@ function Connect-SharePointApp {
         -Url                   $cfg.AdminUrl `
         -ClientId              $cfg.ClientId `
         -Tenant                $TenantConfig.TenantId `
-        -CertificateThumbprint $cfg.CertificateThumbprint `
+        -Thumbprint $cfg.CertificateThumbprint `
         -ErrorAction Stop
 
     Write-Verbose "SharePoint: Connected OK"
