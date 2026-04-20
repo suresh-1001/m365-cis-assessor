@@ -14,6 +14,7 @@ function Connect-TeamsApp {
 
     Write-Verbose "Teams: Connecting to tenant $($cfg.TenantId)"
 
+    Import-Module MicrosoftTeams -ErrorAction Stop
     Connect-MicrosoftTeams `
         -TenantId              $cfg.TenantId `
         -ApplicationId         $cfg.ApplicationId `
