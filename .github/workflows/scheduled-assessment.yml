@@ -11,8 +11,8 @@ on:
         default: 'cis-m365-foundations-6.0.1'
 
 jobs:
-  assess-primary:
-    name: Run Assessment (Graph, Exchange, SharePoint)
+  assess-graph:
+    name: Run Assessment (Graph)
     runs-on: windows-latest
 
     steps:
@@ -66,17 +66,17 @@ jobs:
             Out-Null
           Remove-Item $certPath -Force
 
-      - name: Validate connections (Graph, Exchange, SharePoint)
+      - name: Validate connections (Graph)
         shell: pwsh
         run: |
           Import-Module .\src\Assessor\Assessor.psm1
           $ok = Test-M365Connections `
             -TenantConfigPath config/tenants/ci-tenant.json `
-            -Workloads Graph,Exchange,SharePoint `
+            -Workloads Graph `
             -Verbose
           if (-not $ok) { exit 1 }
 
-      - name: Run assessment (Graph, Exchange, SharePoint)
+      - name: Run assessment (Graph)
         shell: pwsh
         run: |
           Import-Module .\src\Assessor\Assessor.psm1
@@ -85,12 +85,100 @@ jobs:
             -TenantConfigPath config/tenants/ci-tenant.json `
             -Benchmark $benchmark `
             -OutputPath output `
-            -Workloads Graph,Exchange,SharePoint
+            -Workloads Graph
 
       - name: Upload assessment artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: cis-assessment-${{ github.run_number }}-primary
+          name: cis-assessment-${{ github.run_number }}-graph
+          path: output/runs/
+          retention-days: 90
+
+      - name: Clean up tenant config
+        if: always()
+        shell: pwsh
+        run: Remove-Item config/tenants/ci-tenant.json -Force -ErrorAction SilentlyContinue
+
+  assess-exchange-sharepoint:
+    name: Run Assessment (Exchange, SharePoint)
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install required modules
+        shell: pwsh
+        run: .\build\install-modules.ps1
+
+      - name: Write tenant config from secrets
+        shell: pwsh
+        run: |
+          $config = @{
+            TenantName     = "${{ secrets.TENANT_NAME }}"
+            TenantId       = "${{ secrets.TENANT_ID }}"
+            DefaultDomain  = "${{ secrets.DEFAULT_DOMAIN }}"
+            Graph = @{
+              ClientId              = "${{ secrets.GRAPH_CLIENT_ID }}"
+              CertificateThumbprint = "${{ secrets.CERT_THUMBPRINT }}"
+            }
+            Exchange = @{
+              AppId                 = "${{ secrets.GRAPH_CLIENT_ID }}"
+              CertificateThumbprint = "${{ secrets.CERT_THUMBPRINT }}"
+              Organization          = "${{ secrets.DEFAULT_DOMAIN }}"
+            }
+            Teams = @{
+              ApplicationId         = "${{ secrets.GRAPH_CLIENT_ID }}"
+              CertificateThumbprint = "${{ secrets.CERT_THUMBPRINT }}"
+              TenantId              = "${{ secrets.TENANT_ID }}"
+            }
+            SharePoint = @{
+              AdminUrl              = "https://${{ secrets.SHAREPOINT_PREFIX }}-admin.sharepoint.com"
+              ClientId              = "${{ secrets.GRAPH_CLIENT_ID }}"
+              TenantId              = "${{ secrets.TENANT_ID }}"
+              CertificateThumbprint = "${{ secrets.CERT_THUMBPRINT }}"
+            }
+          }
+          $config | ConvertTo-Json -Depth 5 |
+            Out-File -FilePath config/tenants/ci-tenant.json -Encoding UTF8
+
+      - name: Install certificate from secret
+        shell: pwsh
+        run: |
+          $certBytes = [Convert]::FromBase64String("${{ secrets.CERT_PFX_BASE64 }}")
+          $certPath  = Join-Path $env:TEMP 'ci-cert.pfx'
+          [IO.File]::WriteAllBytes($certPath, $certBytes)
+          Import-PfxCertificate `
+            -FilePath $certPath `
+            -CertStoreLocation Cert:\CurrentUser\My `
+            -Password (ConvertTo-SecureString -String "${{ secrets.CERT_PASSWORD }}" -AsPlainText -Force) |
+            Out-Null
+          Remove-Item $certPath -Force
+
+      - name: Validate connections (Exchange, SharePoint)
+        shell: pwsh
+        run: |
+          Import-Module .\src\Assessor\Assessor.psm1
+          $ok = Test-M365Connections `
+            -TenantConfigPath config/tenants/ci-tenant.json `
+            -Workloads Exchange,SharePoint `
+            -Verbose
+          if (-not $ok) { exit 1 }
+
+      - name: Run assessment (Exchange, SharePoint)
+        shell: pwsh
+        run: |
+          Import-Module .\src\Assessor\Assessor.psm1
+          $benchmark = "${{ github.event.inputs.benchmark || 'cis-m365-foundations-6.0.1' }}"
+          Invoke-M365Assessment `
+            -TenantConfigPath config/tenants/ci-tenant.json `
+            -Benchmark $benchmark `
+            -OutputPath output `
+            -Workloads Exchange,SharePoint
+
+      - name: Upload assessment artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cis-assessment-${{ github.run_number }}-exchange-sharepoint
           path: output/runs/
           retention-days: 90
 
@@ -102,7 +190,7 @@ jobs:
   assess-teams:
     name: Run Assessment (Teams)
     runs-on: windows-latest
-    needs: assess-primary
+    needs: assess-exchange-sharepoint
 
     steps:
       - uses: actions/checkout@v4
