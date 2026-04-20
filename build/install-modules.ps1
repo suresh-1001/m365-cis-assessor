@@ -58,10 +58,15 @@ foreach ($m in $modules) {
 
     Write-Host "  [INSTALL] $($m.Name)..." -ForegroundColor Yellow -NoNewline
     try {
-        Install-Module -Name $m.Name -Scope CurrentUser -Force -AllowClobber -MinimumVersion $m.MinVersion
-        $ver = (Get-Module -ListAvailable -Name $m.Name | Sort-Object Version -Descending | Select-Object -First 1).Version
-        Write-Host " $ver" -ForegroundColor Green
-        $installed += $m.Name
+        $installParams = @{
+            Name           = $m.Name
+            Scope          = 'CurrentUser'
+            Force          = $true
+            AllowClobber   = $true
+            MinimumVersion = $m.MinVersion
+        }
+        if ($m.MaximumVersion) { $installParams.MaximumVersion = $m.MaximumVersion }
+        Install-Module @installParams
     }
     catch {
         Write-Host " FAILED" -ForegroundColor Red
